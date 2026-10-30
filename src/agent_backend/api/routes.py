@@ -68,7 +68,7 @@ async def list_conversations(
     offset: int = Query(default=0, ge=0),
     container: Container = Depends(get_container),
 ) -> ConversationList:
-    items, total = await container.repo.list(limit=limit, offset=offset)
+    items, total = await container.repo.list_conversations(limit=limit, offset=offset)
     return ConversationList(
         items=[ConversationOut.model_validate(c) for c in items],
         total=total,

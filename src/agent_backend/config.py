@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     # Postgres is the source of truth. SQLite works for local dev and tests.
     database_url: str = "sqlite+aiosqlite:///./dev.db"
     db_echo: bool = False
+    # Create tables on startup (dev/tests). Production runs `alembic upgrade head` instead.
+    db_auto_create: bool = True
     # "memory://" uses an in-process fake Redis (needs the dev extra) for offline dev.
     redis_url: str = "redis://localhost:6379/0"
 

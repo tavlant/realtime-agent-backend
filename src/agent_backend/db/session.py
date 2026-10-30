@@ -31,7 +31,7 @@ class Database:
         return self.engine.dialect.name == "postgresql"
 
     async def init_schema(self) -> None:
-        """Create tables (idempotent). A real deployment would run Alembic migrations."""
+        """Create tables (idempotent) for dev and tests. Deployments use Alembic migrations."""
         async with self.engine.begin() as conn:
             if self.is_postgres:
                 await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))

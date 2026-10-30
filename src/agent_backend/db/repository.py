@@ -71,7 +71,9 @@ class ConversationRepository:
             raise ConversationNotFoundError(conversation_id)
         return conversation
 
-    async def list(self, limit: int = 20, offset: int = 0) -> tuple[list[Conversation], int]:
+    async def list_conversations(
+        self, limit: int = 20, offset: int = 0
+    ) -> tuple[list[Conversation], int]:
         async with self._sessionmaker() as session:
             total = await session.scalar(select(func.count()).select_from(Conversation))
             rows = await session.scalars(

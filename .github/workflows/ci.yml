@@ -9,20 +9,30 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+env:
+  UV_FROZEN: "1"
+
 jobs:
   lint:
+    name: Lint & type check
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check .
-      - run: ruff format --check .
+          enable-cache: true
+      - run: uv sync --extra dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
 
   test:
+    name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -31,28 +41,35 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-      - run: pip install -e ".[dev]"
-      - run: pytest
+          enable-cache: true
+      - run: uv sync --extra dev
+      - run: uv run pytest --cov --cov-report=term --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        if: matrix.python-version == '3.12'
+        with:
+          name: coverage
+          path: coverage.xml
 
   docker:
+    name: Docker smoke test (Postgres + Redis + migrations)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - name: Build image
-        run: docker build -t realtime-agent-backend:ci .
-      - name: Smoke test against Postgres + Redis
+      - name: Start API, Postgres and Redis (runs alembic upgrade head)
+        run: docker compose up -d --build --wait
+      - name: Readiness and load test
         run: |
-          docker compose up -d --build --wait
           curl -fsS http://localhost:8000/readyz
-          pip install httpx websockets
-          python scripts/load_test.py --conversations 20 --turns 2
-          docker compose down
+          uv run --no-project --with httpx --with websockets python scripts/load_test.py --conversations 20 --turns 2
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs api
+      - run: docker compose down

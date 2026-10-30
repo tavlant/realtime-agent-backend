@@ -1,7 +1,7 @@
 # Task shortcuts. On Windows without make, run the commands directly (see README).
 PY ?= python
 
-.PHONY: install lint format test run run-offline up down load-test
+.PHONY: install lint format typecheck test migrate migration run run-offline up down load-test
 
 install:            ## create a dev environment
 	$(PY) -m pip install -e ".[dev]"
@@ -14,8 +14,17 @@ format:             ## auto-fix lint and formatting
 	ruff check . --fix
 	ruff format .
 
-test:               ## run the full test suite (no Docker needed)
-	pytest
+test:               ## run the full test suite with coverage (no Docker needed)
+	pytest --cov
+
+typecheck:          ## static type checks
+	mypy
+
+migrate:            ## apply database migrations (uses DATABASE_URL)
+	alembic upgrade head
+
+migration:          ## generate a migration: make migration m="add column x"
+	alembic revision --autogenerate -m "$(m)"
 
 run:                ## run against Postgres + Redis from docker compose
 	uvicorn agent_backend.main:create_app --factory --reload

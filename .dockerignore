@@ -10,3 +10,5 @@ __pycache__
 *.db-shm
 *.db-wal
 tests
+docs
+.github
