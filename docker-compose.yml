@@ -9,6 +9,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://agent:agent@postgres:5432/agent
       REDIS_URL: redis://redis:6379/0
+      DB_AUTO_CREATE: "false"
+    # Apply migrations, then start the API.
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn agent_backend.main:create_app --factory --host 0.0.0.0 --port 8000 --proxy-headers --no-access-log"]
     depends_on:
       postgres:
         condition: service_healthy

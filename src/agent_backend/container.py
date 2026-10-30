@@ -112,7 +112,8 @@ class Container:
         return cls(settings, db, redis, llm, repo, knowledge_base, tools, memory, locks, agent)
 
     async def startup(self) -> None:
-        await self.db.init_schema()
+        if self.settings.db_auto_create:
+            await self.db.init_schema()
 
     def track(self, coro: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
         """Run a turn as a tracked task.
